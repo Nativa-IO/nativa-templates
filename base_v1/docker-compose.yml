@@ -1,23 +1,24 @@
 services:
   frontend:
-    container_name: ${FRONTEND_CONTAINER_NAME:-frontend}
     restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: ../docker/frontend.Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
     expose:
       - "3000"
     environment:
       - NODE_ENV=production
+      - VITE_API_URL=${VITE_API_URL:-}
     labels:
-      caddy: ${PUBLIC_FRONTEND_HOST:-}
+      caddy: http://${PUBLIC_FRONTEND_HOST:-}
       caddy.reverse_proxy: "{{upstreams 3000}}"
     networks:
       - network
       - caddy-ingress
 
   backend:
-    container_name: ${BACKEND_CONTAINER_NAME:-natvo-backend}
     restart: unless-stopped
     build:
       context: ./backend
@@ -31,7 +32,7 @@ services:
     environment:
       - ENVIRONMENT=preview
     labels:
-      caddy: ${PUBLIC_API_HOST:-}
+      caddy: http://${PUBLIC_API_HOST:-}
       caddy.reverse_proxy: "{{upstreams 8000}}"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     networks:
