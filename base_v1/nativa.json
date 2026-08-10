@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "runtime": "docker-compose",
+  "services": {
+    "backend": {
+      "path": "backend",
+      "compose_service": "backend",
+      "health": {
+        "port": 8000,
+        "path": "/health"
+      },
+      "sandbox": {
+        "cwd": "/workspace/backend",
+        "env": {
+          "PATH": "/opt/venv/bin:${PATH}"
+        }
+      },
+      "commands": {
+        "install": "pip install --ignore-requires-python -e .",
+        "add": "uv add {args}",
+        "remove": "uv remove {args}",
+        "migrate": "alembic upgrade head",
+        "migration.create": "alembic revision --autogenerate -m {args}",
+        "migration.status": "alembic current",
+        "test": "pytest -q",
+        "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      }
+    },
+    "frontend": {
+      "path": "frontend",
+      "compose_service": "frontend",
+      "health": {
+        "port": 80,
+        "path": "/"
+      },
+      "sandbox": {
+        "cwd": "/workspace/frontend"
+      },
+      "commands": {
+        "install": "npm ci",
+        "add": "npm install {args}",
+        "remove": "npm uninstall {args}",
+        "build": "npm run build",
+        "test": "npm test",
+        "start": "npm run dev"
+      }
+    }
+  }
+}
