@@ -1,0 +1,13 @@
+# Capa DEV para sesiones: el agente la apila sobre la base cuando existe.
+# flutter run -d web-server sirve la app con hot reload; el websocket de
+# reload viaja por el mismo puerto 3000, así que el reverse_proxy de caddy
+# lo pasa sin config extra.
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: ../docker/app.dev.Dockerfile
+    volumes:
+      - ./app:/app
+    environment:
+      - PUB_CACHE=/tmp/pub-cache

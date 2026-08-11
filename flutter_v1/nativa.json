@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "runtime": "docker-compose",
+  "kind": "flutter_app",
+  "runner": {
+    "toolchains": ["flutter"]
+  },
+  "validate": [
+    { "name": "analyze", "service": "app", "command": "flutter analyze --no-fatal-infos" },
+    { "name": "test", "service": "app", "command": "flutter test" }
+  ],
+  "services": {
+    "app": {
+      "path": "app",
+      "compose_service": "app",
+      "health": {
+        "port": 3000,
+        "path": "/"
+      },
+      "sandbox": {
+        "cwd": "/work/app"
+      },
+      "commands": {
+        "install": "flutter pub get",
+        "add": "flutter pub add {args}",
+        "remove": "flutter pub remove {args}",
+        "test": "flutter test",
+        "analyze": "flutter analyze",
+        "build": "flutter build web --release",
+        "build.apk": "flutter build apk --release",
+        "start": "flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0"
+      }
+    }
+  }
+}
