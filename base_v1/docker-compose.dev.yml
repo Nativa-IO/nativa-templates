@@ -18,6 +18,10 @@ services:
       # del túnel público (wss:443 vía cloudflared).
       - PUBLIC_FRONTEND_HOST=${PUBLIC_FRONTEND_HOST:-}
     command: npm run dev -- --host 0.0.0.0 --port 3000
+    labels:
+      # no-store: los previews jamás se cachean (CDN, navegador, webview,
+      # service worker) — solo capa dev; producción cachea normal.
+      caddy.header.Cache-Control: no-store
 
   backend:
     build:
@@ -26,3 +30,7 @@ services:
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    labels:
+      # no-store: los previews jamás se cachean (CDN, navegador, webview,
+      # service worker) — solo capa dev; producción cachea normal.
+      caddy.header.Cache-Control: no-store
