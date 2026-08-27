@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app/main.dart';
 
 void main() {
-  testWidgets('home renders', (tester) async {
+  testWidgets('welcome screen renders', (tester) async {
     await tester.pumpWidget(const NativaApp());
-    expect(find.text('Nativa Flutter'), findsOneWidget);
+    expect(find.text('Nativa'), findsOneWidget);
+    expect(find.text('App corriendo ✓'), findsOneWidget);
   });
 }
