@@ -1,0 +1,28 @@
+# Capa DEV para sesiones: el agente la apila sobre la base cuando existe.
+# El código llega por bind-mount, así que editar un archivo se refleja al
+# instante (Vite HMR en el frontend, uvicorn --reload en el backend) sin
+# rebuild de imagen. Los deploys siguen usando solo docker-compose.yml.
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.dev.Dockerfile
+    volumes:
+      - ./frontend:/app
+      # node_modules vive en la imagen; el volumen anónimo evita que el
+      # bind-mount lo tape con el (posible) node_modules del host.
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      # vite.config.ts lo usa para configurar el websocket de HMR detrás
+      # del túnel público (wss:443 vía cloudflared).
+      - PUBLIC_FRONTEND_HOST=${PUBLIC_FRONTEND_HOST:-}
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.dev.Dockerfile
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
