@@ -66,12 +66,62 @@ Para detenerlo:
 docker compose down
 ```
 
+## El health de cada servicio
+
+`.nativa/manifest.json` (versión 2) declara cómo sabe el agente que un servicio está
+listo y sigue vivo. El sondeo corre **dentro de la red de compose**, contra el
+nombre del servicio (`http://backend:8000/health`) — nunca contra el dominio
+público, para que el health no dependa de Caddy, DNS ni del túnel.
+
+```json
+"health": {
+  "type": "http",
+  "port": 8000,
+  "path": "/health",
+  "method": "GET",
+  "expect_status": [200],
+  "timeout_ms": 2000,
+  "interval_ms": 3000,
+  "retries": 3,
+  "start_period_ms": 120000
+}
+```
+
+Cuatro tipos, como en Kubernetes y Docker:
+
+| `type` | Campos propios | Sano cuando |
+|---|---|---|
+| `http` | `port`, `path`, `method`, `scheme`, `headers`, `expect_status` | El status está en `expect_status` (default 200–399) |
+| `tcp` | `port` | El socket abre |
+| `exec` | `command` (arreglo, sin shell) | El código de salida es 0 |
+| `none` | — | No se sondea: listo al arrancar |
+
+Los tiempos son iguales para todos los tipos:
+
+| Campo | Default | Qué significa |
+|---|---|---|
+| `timeout_ms` | 2000 | Cuánto espera una prueba antes de contarla fallida |
+| `interval_ms` | 3000 | Cada cuánto se repite |
+| `retries` | 3 | Fallos seguidos para declararlo caído |
+| `start_period_ms` | 60000 | Gracia inicial: los fallos no cuentan, solo retrasan el "listo" |
+| `success_threshold` | 1 | Éxitos seguidos para volver a sano |
+
+Reglas del endpoint:
+
+- **Sin auth y barato.** Nada de tocar la base en cada sondeo; para eso usa
+  otro endpoint (`/health?deep=1`), no el del sondeo.
+- **Falla cerrada.** Un `type` desconocido o un campo inválido es error de
+  manifiesto: el servicio queda en error, nunca en verde.
+- **Compatibilidad.** Un `health` viejo (`{port, path}`) se lee como
+  `type: "http"` con los defaults.
+
 ## Estructura
 
 ```text
 base_v1/
 ├── frontend/              # React + Vite
 ├── backend/               # FastAPI
+├── .nativa/               # manifest.json: el contrato con Nativa
 ├── docker/                # Dockerfiles de preview/smoke
 └── docker-compose.yml     # Stack estable, sin hot reload
 ```

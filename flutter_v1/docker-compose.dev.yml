@@ -11,3 +11,8 @@ services:
       - ./app:/app
     environment:
       - PUB_CACHE=/tmp/pub-cache
+    labels:
+      # Un preview es un organismo vivo: NADIE en la cadena (CDN, navegador,
+      # webview, service worker) debe recordarlo. no-store solo en la capa
+      # dev — producción conserva el caching normal.
+      caddy.header.Cache-Control: no-store

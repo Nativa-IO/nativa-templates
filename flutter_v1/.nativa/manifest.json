@@ -1,21 +1,40 @@
 {
-  "version": 1,
+  "version": 2,
   "runtime": "docker-compose",
   "kind": "flutter_app",
   "runner": {
-    "toolchains": ["flutter"]
+    "toolchains": [
+      "flutter"
+    ]
   },
   "validate": [
-    { "name": "analyze", "service": "app", "command": "flutter analyze --no-fatal-infos" },
-    { "name": "test", "service": "app", "command": "flutter test" }
+    {
+      "name": "analyze",
+      "service": "app",
+      "command": "flutter analyze --no-fatal-infos"
+    },
+    {
+      "name": "test",
+      "service": "app",
+      "command": "flutter test"
+    }
   ],
   "services": {
     "app": {
       "path": "app",
       "compose_service": "app",
       "health": {
+        "type": "http",
         "port": 3000,
-        "path": "/"
+        "path": "/",
+        "method": "GET",
+        "expect_status": [
+          200
+        ],
+        "timeout_ms": 2000,
+        "interval_ms": 3000,
+        "retries": 3,
+        "start_period_ms": 180000
       },
       "sandbox": {
         "cwd": "/work/app"

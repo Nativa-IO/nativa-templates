@@ -1,13 +1,22 @@
 {
-  "version": 1,
+  "version": 2,
   "runtime": "docker-compose",
   "services": {
     "backend": {
       "path": "backend",
       "compose_service": "backend",
       "health": {
+        "type": "http",
         "port": 8000,
-        "path": "/health"
+        "path": "/health",
+        "method": "GET",
+        "expect_status": [
+          200
+        ],
+        "timeout_ms": 2000,
+        "interval_ms": 3000,
+        "retries": 3,
+        "start_period_ms": 120000
       },
       "sandbox": {
         "cwd": "/workspace/backend",
@@ -30,8 +39,17 @@
       "path": "frontend",
       "compose_service": "frontend",
       "health": {
+        "type": "http",
         "port": 3000,
-        "path": "/"
+        "path": "/",
+        "method": "GET",
+        "expect_status": [
+          200
+        ],
+        "timeout_ms": 2000,
+        "interval_ms": 3000,
+        "retries": 3,
+        "start_period_ms": 60000
       },
       "sandbox": {
         "cwd": "/workspace/frontend"
