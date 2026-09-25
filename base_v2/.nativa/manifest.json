@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "runtime": "docker-compose",
+  "services": {
+    "backend": {
+      "path": "backend",
+      "compose_service": "backend",
+      "health": {
+        "type": "http",
+        "port": 8000,
+        "path": "/health",
+        "method": "GET",
+        "expect_status": [
+          200
+        ],
+        "timeout_ms": 2000,
+        "interval_ms": 3000,
+        "retries": 3,
+        "start_period_ms": 120000
+      },
+      "sandbox": {
+        "cwd": "/workspace/backend",
+        "env": {
+          "PATH": "/workspace/backend/.venv/bin:${PATH}"
+        }
+      },
+      "lockfile": "uv.lock",
+      "commands": {
+        "install": "uv sync --frozen",
+        "add": "uv add {args}",
+        "remove": "uv remove {args}",
+        "migrate": "uv run alembic upgrade head",
+        "migration.create": "uv run alembic revision --autogenerate -m {args}",
+        "migration.status": "uv run alembic current",
+        "test": "uv run pytest -q",
+        "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      }
+    },
+    "frontend": {
+      "path": "frontend",
+      "compose_service": "frontend",
+      "health": {
+        "type": "http",
+        "port": 3000,
+        "path": "/",
+        "method": "GET",
+        "expect_status": [
+          200
+        ],
+        "timeout_ms": 2000,
+        "interval_ms": 3000,
+        "retries": 3,
+        "start_period_ms": 60000
+      },
+      "sandbox": {
+        "cwd": "/workspace/frontend"
+      },
+      "lockfile": "pnpm-lock.yaml",
+      "commands": {
+        "install": "pnpm install --frozen-lockfile",
+        "add": "pnpm add {args}",
+        "remove": "pnpm remove {args}",
+        "build": "pnpm run build",
+        "test": "pnpm test",
+        "start": "pnpm run dev"
+      }
+    }
+  }
+}

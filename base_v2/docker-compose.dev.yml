@@ -1,0 +1,68 @@
+# Capa DEV para sesiones: el agente la apila sobre la base cuando existe.
+#
+# base_v2: el preview NO tiene imagen propia. Corre sobre la MISMA imagen que
+# el runner de la sesión (`NATIVA_RUNNER_IMAGE`, la escribe nativa-agent en el
+# .env del preview): mismo Node, mismas toolchains de mise, mismo uid. Así lo
+# que la IA instaló y probó en el runner corre idéntico aquí — sin build de
+# imagen, sin `npm ci` horneado y sin el volumen anónimo de node_modules que
+# tapaba las dependencias nuevas.
+#
+# Las dependencias viven DENTRO del worktree del preview (node_modules/,
+# .venv/): el bind-mount las trae. Instalarlas es cosa del promote (pnpm y uv
+# enlazan desde el store compartido en /opt/cache — segundos, sin red).
+#
+# Producción no cambia: docker-compose.yml + docker-compose.prod.yml siguen
+# horneando una imagen inmutable.
+services:
+  frontend:
+    image: ${NATIVA_RUNNER_IMAGE:?NATIVA_RUNNER_IMAGE la escribe nativa-agent en el .env del preview}
+    # Anula el `build:` de la base: en dev nunca se construye.
+    build: !reset null
+    pull_policy: missing
+    user: "1000:1000"
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      # Toolchains (mise) y stores de pnpm/uv/pub: los mismos volúmenes que
+      # monta el runner. Es lo que hace instantáneo el promote.
+      - nativa-toolchains:/opt/mise
+      - nativa-pkg-cache:/opt/cache
+    environment:
+      - NODE_ENV=development
+      - HOME=/home/node
+      - MISE_DATA_DIR=/opt/mise
+      # vite.config.ts lo usa para configurar el websocket de HMR detrás
+      # del túnel público (wss:443 vía cloudflared).
+      - PUBLIC_FRONTEND_HOST=${PUBLIC_FRONTEND_HOST:-}
+    command: pnpm run dev -- --host 0.0.0.0 --port 3000
+    labels:
+      # no-store: los previews jamás se cachean (CDN, navegador, webview,
+      # service worker) — solo capa dev; producción cachea normal.
+      caddy.header.Cache-Control: no-store
+
+  backend:
+    image: ${NATIVA_RUNNER_IMAGE:?NATIVA_RUNNER_IMAGE la escribe nativa-agent en el .env del preview}
+    build: !reset null
+    pull_policy: missing
+    user: "1000:1000"
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - nativa-toolchains:/opt/mise
+      - nativa-pkg-cache:/opt/cache
+    environment:
+      - HOME=/home/node
+      - MISE_DATA_DIR=/opt/mise
+      # El venv del worktree, creado por `uv sync` en el promote.
+      - PATH=/app/.venv/bin:/opt/mise/shims:/usr/local/bin:/usr/bin:/bin
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    labels:
+      caddy.header.Cache-Control: no-store
+
+volumes:
+  # Los mismos nombres que usa nativa-agent para el runner: un solo store
+  # por caja, compartido por todas las sesiones.
+  nativa-toolchains:
+    external: true
+  nativa-pkg-cache:
+    external: true

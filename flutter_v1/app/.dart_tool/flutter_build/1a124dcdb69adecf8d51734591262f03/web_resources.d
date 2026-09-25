@@ -1,0 +1,1 @@
+ /Users/gabrieljasso/Desktop/nativa/nativa-template/flutter_v1/app/build/web/manifest.json:  /Users/gabrieljasso/Desktop/nativa/nativa-template/flutter_v1/app/web/index.html /Users/gabrieljasso/Desktop/nativa/nativa-template/flutter_v1/app/web/manifest.json
