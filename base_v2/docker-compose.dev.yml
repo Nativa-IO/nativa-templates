@@ -34,7 +34,14 @@ services:
       # vite.config.ts lo usa para configurar el websocket de HMR detrás
       # del túnel público (wss:443 vía cloudflared).
       - PUBLIC_FRONTEND_HOST=${PUBLIC_FRONTEND_HOST:-}
-    command: pnpm run dev -- --host 0.0.0.0 --port 3000
+    # La imagen del runner hereda el entrypoint de node:22, que trata el
+    # primer argumento como un script (`node pnpm …` → "Cannot find module
+    # '/app/pnpm'"). Por eso el entrypoint es explícito.
+    entrypoint: ["sh", "-c"]
+    # Ruta absoluta al binario, no `pnpm run dev -- …`: con el script de
+    # package.json de por medio los argumentos se perdían y Vite arrancaba
+    # en 5173. Tampoco se confía en PATH: aquí no hay perfil que lo arme.
+    command: ["/app/node_modules/.bin/vite --host 0.0.0.0 --port 3000"]
     labels:
       # no-store: los previews jamás se cachean (CDN, navegador, webview,
       # service worker) — solo capa dev; producción cachea normal.
@@ -53,9 +60,16 @@ services:
     environment:
       - HOME=/home/node
       - MISE_DATA_DIR=/opt/mise
-      # El venv del worktree, creado por `uv sync` en el promote.
-      - PATH=/app/.venv/bin:/opt/mise/shims:/usr/local/bin:/usr/bin:/bin
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+      # Dónde vive el intérprete de Python que baja uv. El venv del worktree
+      # (`pyvenv.cfg: home = …`) apunta ahí: tiene que ser el volumen
+      # compartido, el mismo lugar donde lo dejó la instalación del promote.
+      # Si quedara dentro de un contenedor, moriría con él y uvicorn
+      # fallaría con "not found".
+      - UV_PYTHON_INSTALL_DIR=/opt/cache/uv-python
+    entrypoint: ["sh", "-c"]
+    # El venv lo crea `uv sync` en el promote, dentro del worktree. Ruta
+    # absoluta al binario: no hace falta PATH.
+    command: ["/app/.venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"]
     labels:
       caddy.header.Cache-Control: no-store
 
