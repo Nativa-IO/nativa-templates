@@ -1,0 +1,11 @@
+# Local de la sesión: lo escribe nativa-agent, nunca va al repo.
+.env
+.nativa/
+.mcp.json
+opencode.json
+.claude/settings.json
+
+# Dependencias y stores: viven en el worktree y se reinstalan por lockfile.
+node_modules/
+.venv/
+.pnpm-store/
