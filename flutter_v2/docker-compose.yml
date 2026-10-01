@@ -1,0 +1,21 @@
+services:
+  app:
+    restart: unless-stopped
+    build:
+      context: ./app
+      dockerfile: ../docker/app.Dockerfile
+    expose:
+      - "3000"
+    labels:
+      caddy: http://${PUBLIC_FRONTEND_HOST:-}
+      caddy.reverse_proxy: "{{upstreams 3000}}"
+    networks:
+      - network
+      - caddy-ingress
+
+networks:
+  network:
+    driver: bridge
+  caddy-ingress:
+    name: ${CADDY_INGRESS_NETWORK:-nativa-ingress}
+    external: true

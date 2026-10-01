@@ -1,0 +1,5 @@
+# La versión de Flutter de este proyecto. La leen el runner de la sesión
+# (cwd /work/app) y el preview (cwd /app): un solo lugar para los dos.
+# Debe coincidir con `runner.toolchains` en .nativa/manifest.json.
+[tools]
+flutter = "3.35"
