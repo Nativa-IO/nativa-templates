@@ -9,7 +9,8 @@
 # Flutter web NO recarga en caliente con el código montado: el dev server
 # compila con dart2js y hay que reiniciarlo para ver un cambio. Por eso el
 # manifiesto declara `reload: restart` y el promote reinicia este servicio
-# (segundos de compilación, no minutos de build + descarga).
+# (segundos de compilación, no minutos de build + descarga). El backend es
+# el mismo FastAPI de base_v2 (uvicorn --reload: ese sí recarga solo).
 services:
   app:
     image: ${NATIVA_RUNNER_IMAGE:?NATIVA_RUNNER_IMAGE la escribe nativa-agent en el .env del preview}
@@ -37,7 +38,34 @@ services:
     # preview nunca sirve artefactos de un build anterior. --profile y no
     # debug: el cliente de debug espera conectarse de vuelta al dev server
     # y detrás del túnel se queda en blanco antes del primer frame.
-    command: ["rm -rf build/web && /home/node/.local/bin/mise exec -- flutter run -d web-server --profile --web-port 3000 --web-hostname 0.0.0.0 --no-version-check"]
+    # --dart-define=API_URL: la app sabe dónde está su API (PUBLIC_API_URL
+    # viene en el .env que escribe nativa-agent).
+    command: ["rm -rf build/web && /home/node/.local/bin/mise exec -- flutter run -d web-server --profile --web-port 3000 --web-hostname 0.0.0.0 --no-version-check --dart-define=API_URL=${PUBLIC_API_URL:-}"]
+    labels:
+      caddy.header.Cache-Control: no-store
+
+
+  backend:
+    image: ${NATIVA_RUNNER_IMAGE:?NATIVA_RUNNER_IMAGE la escribe nativa-agent en el .env del preview}
+    build: !reset null
+    pull_policy: missing
+    user: "1000:1000"
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - nativa-toolchains:/opt/mise
+      - nativa-pkg-cache:/opt/cache
+    environment:
+      - HOME=/home/node
+      - MISE_DATA_DIR=/opt/mise
+      # Dónde vive el intérprete de Python que baja uv. El venv del worktree
+      # (`pyvenv.cfg: home = …`) apunta ahí: tiene que ser el volumen
+      # compartido, el mismo lugar donde lo dejó la instalación del promote.
+      - UV_PYTHON_INSTALL_DIR=/opt/cache/uv-python
+    entrypoint: ["sh", "-c"]
+    # El venv lo crea `uv sync` en el promote, dentro del worktree. Ruta
+    # absoluta al binario: no hace falta PATH.
+    command: ["/app/.venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"]
     labels:
       caddy.header.Cache-Control: no-store
 

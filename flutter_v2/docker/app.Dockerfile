@@ -5,7 +5,10 @@ WORKDIR /src
 COPY pubspec.yaml pubspec.lock* ./
 RUN flutter pub get
 COPY . .
-RUN flutter build web --release
+# La URL pública de la API va horneada en el bundle (Flutter web no lee
+# variables en runtime). La pasa docker-compose.yml desde PUBLIC_API_URL.
+ARG API_URL=
+RUN flutter build web --release --dart-define=API_URL=$API_URL
 
 FROM nginx:alpine
 COPY --from=build /src/build/web /usr/share/nginx/html

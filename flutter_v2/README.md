@@ -23,6 +23,11 @@ receta de `base_v2`:
   manifiesto): Flutter web no recarga en caliente con el código montado,
   así que cada cambio cuesta una compilación de dart2js (segundos), no un
   build de imagen ni una descarga.
+- **Trae el mismo backend que `base_v2`** (FastAPI + SQLAlchemy + alembic,
+  `backend/`) sobre el Postgres que Nativa aprovisiona para todo proyecto
+  (schema por sesión). La app lo encuentra por `--dart-define=API_URL`
+  (`app/lib/core/api.dart`); en el preview lo pone el compose desde
+  `PUBLIC_API_URL`, en producción el build de `docker/app.Dockerfile`.
 
 ## Cómo corre
 
@@ -31,18 +36,18 @@ receta de `base_v2`:
   es la app web con viewport móvil: Nativa Desktop la envuelve en un marco
   de teléfono. `--profile` y no debug: el cliente de debug espera conectarse
   de vuelta al dev server y detrás del túnel se queda en blanco.
-- **Validación**: `flutter analyze` + `flutter test`, dentro del runner de la
-  sesión.
+- **Validación**: `uv run pytest` en `backend/`, `flutter analyze` +
+  `flutter test` en `app/`, dentro del runner de la sesión.
 - **Build prod**: `flutter build web --release` → nginx (imagen estática,
   `docker/app.Dockerfile`). Producción no cambia respecto a V1.
 - **Export**: el repo es tuyo en GitHub desde el día uno; `build.apk` está
   declarado en el manifiesto para el export de Android.
 
-## El health del servicio
+## El health de cada servicio
 
-`.nativa/manifest.json` (versión 2) declara cómo sabe el agente que el
+`.nativa/manifest.json` (versión 2) declara cómo sabe el agente que cada
 servicio está listo y sigue vivo. El sondeo corre **dentro de la red de
-compose**, contra el nombre del servicio (`http://app:3000/`) — nunca contra
-el dominio público, para que el health no dependa de Caddy, DNS ni del túnel.
-`start_period_ms` es largo (180 s) porque el primer arranque compila la app
-con dart2js.
+compose**, contra el nombre del servicio (`http://backend:8000/health`,
+`http://app:3000/`) — nunca contra el dominio público, para que el health no
+dependa de Caddy, DNS ni del túnel. El `start_period_ms` de `app` es largo
+(180 s) porque el primer arranque compila con dart2js.

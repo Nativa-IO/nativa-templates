@@ -2,21 +2,84 @@
   "version": 2,
   "runtime": "docker-compose",
   "kind": "flutter_app",
-  "runner": { "toolchains": ["flutter@3.35"] },
+  "runner": {
+    "toolchains": [
+      "flutter@3.35"
+    ]
+  },
   "validate": [
-    { "name": "analyze", "service": "app", "command": "flutter analyze --no-fatal-infos" },
-    { "name": "test", "service": "app", "command": "flutter test" }
+    {
+      "name": "backend-tests",
+      "service": "backend",
+      "command": "uv run pytest -q"
+    },
+    {
+      "name": "analyze",
+      "service": "app",
+      "command": "flutter analyze --no-fatal-infos"
+    },
+    {
+      "name": "test",
+      "service": "app",
+      "command": "flutter test"
+    }
   ],
   "services": {
+    "backend": {
+      "path": "backend",
+      "compose_service": "backend",
+      "health": {
+        "type": "http",
+        "port": 8000,
+        "path": "/health",
+        "method": "GET",
+        "expect_status": [
+          200
+        ],
+        "timeout_ms": 2000,
+        "interval_ms": 3000,
+        "retries": 3,
+        "start_period_ms": 120000
+      },
+      "sandbox": {
+        "cwd": "/workspace/backend",
+        "env": {
+          "PATH": "/workspace/backend/.venv/bin:${PATH}"
+        }
+      },
+      "lockfile": "uv.lock",
+      "commands": {
+        "install": "uv sync --frozen",
+        "add": "uv add {args}",
+        "remove": "uv remove {args}",
+        "migrate": "uv run alembic upgrade head",
+        "migration.create": "uv run alembic revision --autogenerate -m {args}",
+        "migration.status": "uv run alembic current",
+        "test": "uv run pytest -q",
+        "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      }
+    },
     "app": {
       "path": "app",
       "compose_service": "app",
       "lockfile": "pubspec.lock",
       "reload": "restart",
-      "health": { "type": "http", "port": 3000, "path": "/", "method": "GET",
-                  "expect_status": [200], "timeout_ms": 2000, "interval_ms": 3000,
-                  "retries": 3, "start_period_ms": 180000 },
-      "sandbox": { "cwd": "/work/app" },
+      "health": {
+        "type": "http",
+        "port": 3000,
+        "path": "/",
+        "method": "GET",
+        "expect_status": [
+          200
+        ],
+        "timeout_ms": 2000,
+        "interval_ms": 3000,
+        "retries": 3,
+        "start_period_ms": 180000
+      },
+      "sandbox": {
+        "cwd": "/work/app"
+      },
       "commands": {
         "install": "flutter pub get",
         "add": "flutter pub add {args}",

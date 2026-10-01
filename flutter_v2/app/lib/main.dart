@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'core/api.dart';
+
 // Pantalla de bienvenida de Nativa: placeholder autocontenido que el primer
 // build del proyecto reemplaza. Todo vive en este archivo a propósito.
 
@@ -101,37 +103,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 28),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0x1F3FB950),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0x663FB950)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 7,
-                          height: 7,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: _green,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'App corriendo ✓',
-                          style: TextStyle(fontSize: 14, color: _green),
-                        ),
-                      ],
-                    ),
-                  ),
+                  const _ApiStatusChip(),
                   const SizedBox(height: 28),
                   const SizedBox(
                     width: 420,
@@ -169,4 +141,72 @@ class _DotGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// "App corriendo" y, si hay backend, "API conectada": pega a `/health` al
+/// montarse. Es el ejemplo mínimo de cómo esta app habla con su API; el
+/// primer build del proyecto lo reemplaza.
+class _ApiStatusChip extends StatefulWidget {
+  const _ApiStatusChip();
+
+  @override
+  State<_ApiStatusChip> createState() => _ApiStatusChipState();
+}
+
+class _ApiStatusChipState extends State<_ApiStatusChip> {
+  String _label = 'App corriendo ✓';
+  Color _color = _green;
+
+  @override
+  void initState() {
+    super.initState();
+    if (hasApi) _check();
+  }
+
+  Future<void> _check() async {
+    setState(() {
+      _label = 'Conectando con la API…';
+      _color = _muted;
+    });
+    try {
+      await fetchHealth();
+      if (!mounted) return;
+      setState(() {
+        _label = 'App y API conectadas ✓';
+        _color = _green;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _label = 'App corriendo · API sin responder';
+        _color = _violet;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: _color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 7,
+            height: 7,
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: _color, shape: BoxShape.circle),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(_label, style: TextStyle(fontSize: 14, color: _color)),
+        ],
+      ),
+    );
+  }
 }

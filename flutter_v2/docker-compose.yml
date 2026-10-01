@@ -4,11 +4,35 @@ services:
     build:
       context: ./app
       dockerfile: ../docker/app.Dockerfile
+      args:
+        # La app web se compila con la URL pública de su API horneada.
+        API_URL: ${PUBLIC_API_URL:-}
     expose:
       - "3000"
     labels:
       caddy: http://${PUBLIC_FRONTEND_HOST:-}
       caddy.reverse_proxy: "{{upstreams 3000}}"
+    networks:
+      - network
+      - caddy-ingress
+
+  backend:
+    restart: unless-stopped
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    working_dir: /app
+    expose:
+      - "8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - ENVIRONMENT=preview
+    labels:
+      caddy: http://${PUBLIC_API_HOST:-}
+      caddy.reverse_proxy: "{{upstreams 8000}}"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     networks:
       - network
       - caddy-ingress
