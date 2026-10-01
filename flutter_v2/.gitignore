@@ -1,6 +1,9 @@
 # Local de la sesión: lo escribe nativa-agent, nunca va al repo.
 .env
-.nativa/
+# .nativa/ es lo que nativa-agent deja en el worktree (contexto, documentos),
+# salvo el manifiesto, que SÍ es del proyecto.
+.nativa/*
+!.nativa/manifest.json
 .mcp.json
 opencode.json
 .claude/settings.json

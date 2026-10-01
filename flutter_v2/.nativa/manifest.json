@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "runtime": "docker-compose",
+  "kind": "flutter_app",
+  "runner": { "toolchains": ["flutter@3.35"] },
+  "validate": [
+    { "name": "analyze", "service": "app", "command": "flutter analyze --no-fatal-infos" },
+    { "name": "test", "service": "app", "command": "flutter test" }
+  ],
+  "services": {
+    "app": {
+      "path": "app",
+      "compose_service": "app",
+      "lockfile": "pubspec.lock",
+      "reload": "restart",
+      "health": { "type": "http", "port": 3000, "path": "/", "method": "GET",
+                  "expect_status": [200], "timeout_ms": 2000, "interval_ms": 3000,
+                  "retries": 3, "start_period_ms": 180000 },
+      "sandbox": { "cwd": "/work/app" },
+      "commands": {
+        "install": "flutter pub get",
+        "add": "flutter pub add {args}",
+        "remove": "flutter pub remove {args}",
+        "test": "flutter test",
+        "analyze": "flutter analyze",
+        "build": "flutter build web --release",
+        "build.apk": "flutter build apk --release",
+        "start": "flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0"
+      }
+    }
+  }
+}
